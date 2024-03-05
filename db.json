@@ -1,0 +1,14 @@
+{
+  "posts": [
+    {
+      "id": 1,
+      "content": "json-server",
+      "title": "typicode"
+    },
+    {
+      "title": "gfhs",
+      "content": "gfsh",
+      "id": 2
+    }
+  ]
+}
