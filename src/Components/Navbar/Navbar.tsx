@@ -58,13 +58,7 @@ function Navbar() {
                             >Add</NavLink
                             >
                         </li>
-                        <li>
-                            <a
-                                href="#"
-                                className="block py-2 px-3 text-gray-900 rounded  md:border-0 hover:text-blue-700 md:p-0 dark:text-white"
-                            >Bookings</a
-                            >
-                        </li>
+
 
                     </ul>
                 </div>

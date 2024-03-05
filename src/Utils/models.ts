@@ -15,3 +15,7 @@ export interface Appointment {
     count: number
 }
 
+export interface Booking {
+    user:string,
+    _id?:string
+}

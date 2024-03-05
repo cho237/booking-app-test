@@ -35,7 +35,6 @@ function AddCourse() {
                 // }
                 setEditMode(true)
                 setInitialValues(response.data)
-                console.log(response.data)
             }
             getDetails();
         }

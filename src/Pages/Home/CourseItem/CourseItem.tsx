@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {ICourse} from "../../../Utils/models.ts";
+import {Booking, ICourse} from "../../../Utils/models.ts";
 import {toast} from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import axios from "axios";
@@ -9,6 +9,7 @@ import {Link} from "react-router-dom";
 import {convertDateFormat} from "../../../Utils/functions.ts";
 import Modal from "../../../Components/Modal/Modal.tsx";
 
+
 interface Props {
     course: ICourse,
     deleteCourse: (id: string | undefined) => void
@@ -17,36 +18,117 @@ interface Props {
 
 function CourseItem({course, deleteCourse}: Props) {
     const [showModal, setShowModal] = useState<boolean>(false)
+    const [showBookingModal, setShowBookingModal] = useState<boolean>(false)
     const [appointmentId, setAppointmentId] = useState<string | undefined>("")
     const [userName, setUserName] = useState<string>("")
+    const [loading, setLoading] = useState(false)
+    const [bookings, setBookings] = useState<Booking[]>([])
     const handleBook = async (): Promise<any> => {
         try {
-            if (!appointmentId || !userName) return
-
-            const response = await axios.post('http://localhost:5000/training/book/' + appointmentId, {
+            if (!appointmentId || userName === "") return
+            await axios.post('http://localhost:5000/training/book/' + appointmentId, {
                 user: userName
             });
-            if (response.status >= 300) return toast.error("An Error occurred!");
             toast.success("Successfully")
+            setUserName("")
             setShowModal(false)
         } catch (error: any) {
             if (error.response.status === 409) {
                 return toast.warning("Already booked!");
             }
+            if (error.response.status === 400) {
+                return toast.warning("Booking Limit!");
+            }
             toast.error("An Error occurred!");
         }
     }
-
+    const handleAppointmentModal = async (appId: string) => {
+        setShowBookingModal(true)
+        setLoading(true)
+        try {
+            const response = await axios.get('http://localhost:5000/training/appointment/' + appId);
+            setLoading(false)
+            const bookings:Booking[] = response.data.bookings
+            setBookings(bookings)
+        } catch (error: any) {
+            setLoading(false)
+            toast.error("An Error occurred!");
+        }
+    }
     const modalHandler = () => {
         setShowModal(!showModal)
-        console.log(showModal)
-
     }
 
     return (
         <>
             <Modal openModal={showModal} setOpenModal={modalHandler}>
-                <h1>Hello</h1>
+
+                <div
+                    className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0"
+                >
+
+                    <div
+                        className="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg"
+                    >
+
+                        <div className="bg-slate-900 px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                            <div className="mb-5">
+                                <label
+                                    className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+                                >Username</label
+                                >
+                                <input
+                                    onChange={(e) => setUserName(e.target.value)}
+                                    type="text"
+                                    id="text"
+                                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                    required
+                                />
+                            </div>
+                        </div>
+                        <div
+                            className="bg-slate-900 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6"
+                        >
+
+                            <button
+                                onClick={handleBook}
+                                type="submit"
+                                className="inline-flex w-full justify-center rounded-md bg-green-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 sm:ml-3 sm:w-auto"
+                            >
+                                Submit
+                            </button>
+                            <button
+                                onClick={() => setShowModal(false)}
+                                type="button"
+                                className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+
+            </Modal>
+
+            <Modal openModal={showBookingModal} setOpenModal={() => setShowBookingModal(!showBookingModal)}>
+                {loading &&
+                    <div className="h-full w-full flex justify-center items-center">
+                        <p className="text-white">Loading...</p>
+                    </div>
+                }
+                {( !loading && bookings.length < 1) &&
+                    <div className="h-full w-full flex justify-center items-center">
+                        <p className="text-white">No Bookings yet on this date</p>
+                    </div>
+                }
+                { !loading  &&
+                    <div className="text-white py-4 px-5">
+                        {bookings.map((booking) => <p key={booking._id} className="text-white">{booking.user}</p>)}
+                    </div>
+                }
+
+
             </Modal>
 
             <div
@@ -78,8 +160,9 @@ function CourseItem({course, deleteCourse}: Props) {
                         <div className="flex flex-col  gap-2 py-1 px-5">
                             {course.appointments?.map((appointment) =>
                                 <div key={appointment._id} className="flex justify-between items-center ">
-                                    <p className="text-white ">{convertDateFormat(appointment.date.toString())}</p>
-                                    <a
+                                    <p onClick={() => handleAppointmentModal(appointment._id)}
+                                       className="text-white ">{convertDateFormat(appointment.date.toString())}</p>
+                                    <div
                                         onClick={() => {
                                             setShowModal(true)
                                             setAppointmentId(appointment._id)
@@ -87,71 +170,10 @@ function CourseItem({course, deleteCourse}: Props) {
                                         className="cursor-pointer inline-flex items-center px-3 py-2 text-sm font-medium text-center text-white bg-green-700 rounded-lg focus:ring-4 focus:outline-none focus:ring-blue-300"
                                     >
                                         Book
-                                    </a>
+                                    </div>
                                 </div>
                             )}
-                            {/*{showModal &&*/}
-                            {/*    <div*/}
 
-                            {/*        className="relative z-10"*/}
-                            {/*        aria-labelledby="modal-title"*/}
-                            {/*        role="dialog"*/}
-                            {/*        aria-modal="true"*/}
-                            {/*    >*/}
-
-                            {/*        <div*/}
-                            {/*            className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"*/}
-                            {/*        ></div>*/}
-
-                            {/*        <div className="fixed inset-0 z-10 w-screen overflow-y-auto">*/}
-                            {/*            <div*/}
-                            {/*                className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0"*/}
-                            {/*            >*/}
-
-                            {/*                <div*/}
-                            {/*                    className="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg"*/}
-                            {/*                >*/}
-
-                            {/*                    <div className="bg-slate-900 px-4 pb-4 pt-5 sm:p-6 sm:pb-4">*/}
-                            {/*                        <div className="mb-5">*/}
-                            {/*                            <label*/}
-                            {/*                                className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"*/}
-                            {/*                            >Username</label*/}
-                            {/*                            >*/}
-                            {/*                            <input*/}
-                            {/*                                onChange={(e) => setUserName(e.target.value)}*/}
-                            {/*                                type="text"*/}
-                            {/*                                id="text"*/}
-                            {/*                                className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"*/}
-                            {/*                                required*/}
-                            {/*                            />*/}
-                            {/*                        </div>*/}
-                            {/*                    </div>*/}
-                            {/*                    <div*/}
-                            {/*                        className="bg-slate-900 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6"*/}
-                            {/*                    >*/}
-
-                            {/*                        <button*/}
-                            {/*                            onClick={handleBook}*/}
-                            {/*                            type="submit"*/}
-                            {/*                            className="inline-flex w-full justify-center rounded-md bg-green-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 sm:ml-3 sm:w-auto"*/}
-                            {/*                        >*/}
-                            {/*                            Submit*/}
-                            {/*                        </button>*/}
-                            {/*                        <button*/}
-                            {/*                            onClick={() => setShowModal(false)}*/}
-                            {/*                            type="button"*/}
-                            {/*                            className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto"*/}
-                            {/*                        >*/}
-                            {/*                            Cancel*/}
-                            {/*                        </button>*/}
-                            {/*                    </div>*/}
-
-                            {/*                </div>*/}
-                            {/*            </div>*/}
-                            {/*        </div>*/}
-                            {/*    </div>*/}
-                            {/*}*/}
                         </div>
 
 

@@ -9,6 +9,7 @@ function Home() {
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string>('');
     const [searchKey, setSearchKey] = useState<string>("")
+
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
@@ -31,11 +32,16 @@ function Home() {
 
     }, [searchKey]);
 
-    const handleDelete = async (id:string | undefined):Promise<any> => {
+    // const fetchAppointment = async()
+    // {
+    //
+    // }
+
+    const handleDelete = async (id: string | undefined): Promise<any> => {
         try {
             await axios.delete('http://localhost:5000/training/course/' + id);
             toast.success("Successfully")
-            const updatedCourses: ICourse[] = data.filter((course)=> {
+            const updatedCourses: ICourse[] = data.filter((course) => {
                 return course._id !== id;
             })
             setData(updatedCourses);
@@ -99,7 +105,8 @@ function Home() {
                 {error && <div className="text-white">An Error occurred.</div>}
                 {data.length > 0 &&
                     <div className="grid sm:grid-cols-2 lg:grid-cols-3  gap-4">
-                        {data.map((course) => <CourseItem deleteCourse={handleDelete} key={course._id} course={course}></CourseItem>)}
+                        {data.map((course) => <CourseItem deleteCourse={handleDelete} key={course._id}
+                                                          course={course}></CourseItem>)}
                     </div>
                 }
                 {(data.length === 0 && !loading) && <div className="text-white">No Course Found.</div>}
