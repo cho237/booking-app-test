@@ -1,0 +1,4 @@
+.general_padding{
+    @apply px-6 sm:px-20 xl:px-60 2xl:px-[27rem]
+}
+
